@@ -97,14 +97,14 @@ optimization:
     enabled: true
 
 training:
-  epochs_max: 80
+  epochs_max: 150
   batch_size: 16
   grad_accum_steps: 1
   early_stopping:
     enabled: true
     monitor: "val_accuracy"
     mode: "max"
-    patience: 15
+    patience: 125
     restore_best: true
 
 loss:

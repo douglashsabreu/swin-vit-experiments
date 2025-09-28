@@ -23,6 +23,10 @@ spatial_images_dataset_final/
 validation.log
 test.log
 nohup.out
+training.log
+detailed_evaluation/
+kfold_results/
+rigorous_splits/
 
 # Model checkpoints and artifacts
 *.pt

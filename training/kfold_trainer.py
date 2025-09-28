@@ -31,22 +31,35 @@ class ProfessionalKFoldTrainer:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
-        self.device = config.experiment.device
+        self.device = getattr(config.experiment, 'device', 'cpu') if hasattr(config, 'experiment') else config.get('experiment', {}).get('device', 'cpu')
         self.fold_results = []
         self.wandb_run = None
         
         # Initialize WandB if enabled
-        if config.logging.backend == "wandb":
+        backend = getattr(config.logging, 'backend', '') if hasattr(config, 'logging') else config.get('logging', {}).get('backend', '')
+        if backend == "wandb":
             self._init_wandb_experiment()
     
     def _init_wandb_experiment(self):
         """Initialize WandB experiment for K-fold tracking."""
+        # Handle both dict and object config formats
+        if hasattr(self.config, 'logging'):
+            logging_config = self.config.logging
+            project_name = getattr(logging_config, 'project_name', 'spatial-audio-classification-phd')
+            run_tags = getattr(logging_config, 'run_tags', [])
+            experiment_name = getattr(self.config.experiment, 'name', 'spatial_audio_classification')
+        else:
+            logging_config = self.config.get('logging', {})
+            project_name = logging_config.get('project_name', 'spatial-audio-classification-phd')
+            run_tags = logging_config.get('run_tags', [])
+            experiment_name = self.config.get('experiment', {}).get('name', 'spatial_audio_classification')
+        
         self.wandb_run = wandb.init(
-            project=self.config.logging.project_name,
-            name=f"kfold-{self.n_folds}fold-{self.config.experiment.name}",
-            tags=self.config.logging.run_tags + ["kfold_cv", "phd_thesis"],
+            project=project_name,
+            name=f"kfold-{self.n_folds}fold-{experiment_name}",
+            tags=run_tags + ["kfold_cv", "phd_thesis"],
             config={
-                **self.config.dict(),
+                **(self.config.dict() if hasattr(self.config, 'dict') else self.config),
                 "n_folds": self.n_folds,
                 "cv_strategy": "stratified_kfold"
             },
@@ -116,20 +129,25 @@ class ProfessionalKFoldTrainer:
         train_subset = torch.utils.data.Subset(datamodule._train_dataset, train_idx)
         val_subset = torch.utils.data.Subset(datamodule._train_dataset, val_idx)
         
+        # Get configuration values safely
+        batch_size = getattr(self.config.training, 'batch_size', 16) if hasattr(self.config, 'training') else self.config.get('training', {}).get('batch_size', 16)
+        num_workers = getattr(self.config.data, 'num_workers', 4) if hasattr(self.config, 'data') else self.config.get('data', {}).get('num_workers', 4)
+        pin_memory = getattr(self.config.data, 'pin_memory', True) if hasattr(self.config, 'data') else self.config.get('data', {}).get('pin_memory', True)
+        
         train_loader = torch.utils.data.DataLoader(
             train_subset, 
-            batch_size=self.config.training.batch_size,
+            batch_size=batch_size,
             shuffle=True,
-            num_workers=self.config.data.num_workers,
-            pin_memory=self.config.data.pin_memory
+            num_workers=num_workers,
+            pin_memory=pin_memory
         )
         
         val_loader = torch.utils.data.DataLoader(
             val_subset,
-            batch_size=self.config.training.batch_size,
+            batch_size=batch_size,
             shuffle=False,
-            num_workers=self.config.data.num_workers,
-            pin_memory=self.config.data.pin_memory
+            num_workers=num_workers,
+            pin_memory=pin_memory
         )
         
         # Initialize model, optimizer, scheduler
@@ -145,7 +163,14 @@ class ProfessionalKFoldTrainer:
         loss_factory = LossFactory(self.config)
         criterion = loss_factory.build()
         
-        scaler = GradScaler() if self.config.optimization.amp.enabled else None
+        # Check for AMP configuration  
+        amp_enabled = False
+        if hasattr(self.config, 'optimization'):
+            amp_enabled = getattr(self.config.optimization, 'amp', {}).enabled if hasattr(self.config.optimization, 'amp') else False
+        else:
+            amp_enabled = self.config.get('optimization', {}).get('amp', {}).get('enabled', False)
+        
+        scaler = GradScaler() if amp_enabled else None
         
         # Training loop
         best_val_metric = -float('inf')
@@ -157,7 +182,9 @@ class ProfessionalKFoldTrainer:
             'val_f1_scores': []
         }
         
-        for epoch in range(self.config.training.epochs_max):
+        epochs_max = getattr(self.config.training, 'epochs_max', 80) if hasattr(self.config, 'training') else self.config.get('training', {}).get('epochs_max', 80)
+        
+        for epoch in range(epochs_max):
             epoch_start = time.time()
             
             # Train epoch
@@ -184,7 +211,7 @@ class ProfessionalKFoldTrainer:
                     f'fold_{fold_idx}/val_accuracy': val_metrics['accuracy'],
                     f'fold_{fold_idx}/val_f1': val_metrics['f1_score'],
                     f'fold_{fold_idx}/epoch': epoch,
-                    'global_step': fold_idx * self.config.training.epochs_max + epoch
+                    'global_step': fold_idx * epochs_max + epoch
                 })
             
             # Track best model
@@ -197,7 +224,7 @@ class ProfessionalKFoldTrainer:
                 self._save_fold_checkpoint(model, optimizer, fold_idx, epoch, val_metrics)
             
             epoch_time = time.time() - epoch_start
-            print(f"Epoch {epoch+1}/{self.config.training.epochs_max} - "
+            print(f"Epoch {epoch+1}/{epochs_max} - "
                   f"Loss: {train_loss:.4f} - Val Acc: {val_metrics['accuracy']:.4f} - "
                   f"Val F1: {val_metrics['f1_score']:.4f} - Time: {epoch_time:.1f}s")
         
@@ -305,7 +332,8 @@ class ProfessionalKFoldTrainer:
     def run_kfold_cv(self) -> Dict[str, Any]:
         """Execute complete K-fold cross-validation."""
         print("🎓 Starting Professional K-Fold Cross-Validation")
-        print(f"📊 Configuration: {self.n_folds} folds, {self.config.training.epochs_max} epochs per fold")
+        epochs_max_display = getattr(self.config.training, 'epochs_max', 80) if hasattr(self.config, 'training') else self.config.get('training', {}).get('epochs_max', 80)
+        print(f"📊 Configuration: {self.n_folds} folds, {epochs_max_display} epochs per fold")
         print("=" * 70)
         
         cv_start_time = time.time()
