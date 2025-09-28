@@ -1,0 +1,17 @@
+{
+  "experiment_name": "spatial_audio_classification_phd",
+  "model": "swin_base_patch4_window12_384",
+  "total_epochs": 68,
+  "best_accuracy": 0.9465954606141522,
+  "best_f1_score": 0.9464338467989762,
+  "final_accuracy": 0.9445927903871829,
+  "final_f1_score": 0.9444816563683728,
+  "best_accuracy_epoch": 53,
+  "best_f1_epoch": 53,
+  "training_time_hours": 0.9028888888888887,
+  "checkpoints_saved": 17,
+  "gpu_model": "RTX_4070_Ti",
+  "mixed_precision": true,
+  "batch_size": 16,
+  "input_resolution": "384x384"
+}

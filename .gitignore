@@ -20,7 +20,6 @@ spatial_images_dataset_final/
 # Training outputs
 /logs/
 /thesis_results/
-training*.log
 validation.log
 test.log
 nohup.out

@@ -15,6 +15,9 @@ dependencies = [
   "numpy",
   "wandb",
   "mlflow",
+  "seaborn>=0.13.2",
+  "matplotlib>=3.10.6",
+  "pandas>=2.3.2",
 ]
 
 [project.scripts]

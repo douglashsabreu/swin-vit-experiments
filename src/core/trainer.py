@@ -14,6 +14,7 @@ from src.factories.optimizer_factory import OptimizerFactory
 from src.factories.scheduler_factory import SchedulerFactory
 from src.factories.loss_factory import LossFactory
 from src.data.datamodule import DataModule
+from src.utils.wandb_logger import ThesisWandBLogger
 from pathlib import Path
 
 
@@ -40,6 +41,16 @@ class Trainer:
         self._best_metric = -math.inf
         self._best_state: Optional[Dict[str, Any]] = None
         self._epochs_no_improve = 0
+        
+        # Initialize WandB logger if enabled
+        self._wandb_logger = None
+        if config.logging.backend == "wandb":
+            try:
+                self._wandb_logger = ThesisWandBLogger(config.dict())
+                print("✅ WandB logging initialized")
+            except Exception as e:
+                print(f"⚠️ WandB initialization failed: {e}")
+                self._wandb_logger = None
 
     def setup(self) -> None:
         self._datamodule.setup()
@@ -104,6 +115,11 @@ class Trainer:
             t1 = time.time()
             epoch_time = t1 - t0
             print(f"Epoch {epoch+1}/{end_epoch} - train:{train_metrics} val:{val_metrics} time:{epoch_time:.1f}s")
+            
+            # Log to WandB if available
+            if self._wandb_logger:
+                lr = self._optimizer.param_groups[0]['lr'] if self._optimizer else None
+                self._wandb_logger.log_epoch_metrics(epoch + 1, train_metrics, val_metrics, lr)
 
     def _train_one_epoch(self, loader, epoch: int, grad_accum: int) -> Dict[str, float]:
         self._model.train()
