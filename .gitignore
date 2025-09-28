@@ -1,0 +1,6 @@
+# Byte-compiled / virtual env
+__pycache__/
+.venv/
+# Dataset
+spatial_images_dataset/
+

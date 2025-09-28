@@ -1,0 +1,22 @@
+[project]
+name = "swin-vit-experiments"
+version = "0.1.0"
+description = "Swin-T transfer learning image classifier pipeline"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "torch>=2.2.0",
+  "torchvision",
+  "timm>=0.9.0",
+  "pydantic>=2.0",
+  "pyyaml",
+  "scikit-learn",
+  "albumentations",
+  "numpy",
+  "wandb",
+  "mlflow",
+]
+
+[project.scripts]
+instantiate-model = "src.scripts.instantiate_model:main"
+run-train = "src.core.run:main"
