@@ -182,7 +182,14 @@ class _SwinWithHead(nn.Module):
 
         # If features are spatial, pool them
         if features.ndim == 4:
-            features = features.mean(dim=(-2, -1))
+            # Check if features are in format [batch, channels, H, W] or [batch, H, W, channels]
+            # SwinV2 typically returns [batch, channels, H, W]
+            if features.shape[1] > features.shape[-1] and features.shape[-2] == features.shape[-1]:
+                # Format is [batch, channels, H, W], pool over spatial dimensions (-2, -1)
+                features = features.mean(dim=(-2, -1))
+            else:
+                # Format is [batch, H, W, channels], pool over dimensions (1, 2)
+                features = features.mean(dim=(1, 2))
 
         return self.head(features)
 

@@ -6,7 +6,7 @@ from typing import Optional, Dict, Any
 
 import torch
 import torch.nn as nn
-from torch.cuda.amp import autocast, GradScaler
+from torch.amp import autocast, GradScaler
 
 from src.config import FullConfig
 from src.factories.model_factory import ModelFactory
@@ -118,7 +118,7 @@ class Trainer:
             images = images.to(self._device, non_blocking=True)
             targets = targets.to(self._device, non_blocking=True)
 
-            with autocast(enabled=(self._scaler is not None)):
+            with autocast('cuda', enabled=(self._scaler is not None)):
                 logits = self._model(images)
                 loss = loss_fn(logits, targets)
                 loss_value = loss.item() if isinstance(loss, torch.Tensor) else float(loss)
@@ -163,7 +163,7 @@ class Trainer:
                 images = images.to(self._device, non_blocking=True)
                 targets = targets.to(self._device, non_blocking=True)
 
-                with autocast(enabled=(self._scaler is not None)):
+                with autocast('cuda', enabled=(self._scaler is not None)):
                     logits = self._model(images)
                     loss = self._loss_fn(logits, targets)
 

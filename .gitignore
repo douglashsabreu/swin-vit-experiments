@@ -1,6 +1,103 @@
-# Byte-compiled / virtual env
+# Byte-compiled / optimized / DLL files
 __pycache__/
-.venv/
-# Dataset
-spatial_images_dataset/
+*.py[cod]
+*$py.class
+*.so
 
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Dataset files
+spatial_images_dataset/
+spatial_images_dataset_final/
+*.zip
+*.tar.gz
+*.rar
+
+# Training outputs
+/logs/
+/thesis_results/
+training*.log
+validation.log
+test.log
+nohup.out
+
+# Model checkpoints and artifacts
+*.pt
+*.pth
+*.onnx
+*.torchscript
+
+# Predictions and results
+test_predictions.*
+confusion_matrix.*
+classification_report.*
+*.csv
+*.png
+*.pdf
+*.jpg
+*.jpeg
+
+# WandB files
+wandb/
+.wandb/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Environments
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Academic/Research specific
+*.bib.bak
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc

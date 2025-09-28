@@ -1,0 +1,3 @@
+[console_scripts]
+instantiate-model = src.scripts.instantiate_model:main
+run-train = src.core.run:main

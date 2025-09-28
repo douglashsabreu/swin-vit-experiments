@@ -39,8 +39,12 @@ class AugmentationFactory:
             if 'random_resized_crop' in cfg and cfg['random_resized_crop'].enabled:
                 scale = tuple(cfg['random_resized_crop'].scale) if cfg['random_resized_crop'].scale else (0.08, 1.0)
                 ratio = tuple(cfg['random_resized_crop'].ratio) if cfg['random_resized_crop'].ratio else (0.75, 1.333)
-                size = tuple(self._config.data.image_size)
-                aug_list.append(A.RandomResizedCrop(height=size[0], width=size[1], scale=scale, ratio=ratio, p=1.0))
+                # Use size from config if available, otherwise use data.image_size
+                if hasattr(cfg['random_resized_crop'], 'size') and cfg['random_resized_crop'].size:
+                    size = tuple(cfg['random_resized_crop'].size)
+                else:
+                    size = tuple(self._config.data.image_size)
+                aug_list.append(A.RandomResizedCrop(size=size, scale=scale, ratio=ratio, p=1.0))
 
             if 'horizontal_flip' in cfg and cfg['horizontal_flip'].enabled:
                 aug_list.append(A.HorizontalFlip(p=float(cfg['horizontal_flip'].p or 0.5)))
@@ -65,14 +69,18 @@ class AugmentationFactory:
             # Mixup/CutMix must be applied in batch collate; here we return geometric augmentations
             aug_list.append(A.Normalize(mean=_imagenet_mean(), std=_imagenet_std()))
             aug_list.append(ToTensorV2())
-            return A.Compose(aug_list)
+            return _AlbumentationsWrapper(A.Compose(aug_list))
 
         # Fallback to torchvision transforms
         tlist = []
         if 'random_resized_crop' in cfg and cfg['random_resized_crop'].enabled:
             scale = tuple(cfg['random_resized_crop'].scale) if cfg['random_resized_crop'].scale else (0.08, 1.0)
             ratio = tuple(cfg['random_resized_crop'].ratio) if cfg['random_resized_crop'].ratio else (0.75, 1.333)
-            size = tuple(self._config.data.image_size)
+            # Use size from config if available, otherwise use data.image_size
+            if hasattr(cfg['random_resized_crop'], 'size') and cfg['random_resized_crop'].size:
+                size = tuple(cfg['random_resized_crop'].size)
+            else:
+                size = tuple(self._config.data.image_size)
             tlist.append(transforms.RandomResizedCrop(size=size, scale=scale, ratio=ratio))
 
         if 'horizontal_flip' in cfg and cfg['horizontal_flip'].enabled:
@@ -102,20 +110,19 @@ class AugmentationFactory:
         size = tuple(cfg['resize'].size)
 
         if A is not None:
-            aug_list = [A.Resize(height=size[0], width=size[1], interpolation=_alb_interp(cfg['resize'].get('interpolation')))]
-            if cfg.get('center_crop', {}).get('enabled', True):
-                crop_size = tuple(cfg['center_crop']['size'])
+            aug_list = [A.Resize(height=size[0], width=size[1], interpolation=_alb_interp(cfg['resize'].interpolation))]
+            if 'center_crop' in cfg and cfg['center_crop'].enabled:
+                crop_size = tuple(cfg['center_crop'].size)
                 aug_list.append(A.CenterCrop(height=crop_size[0], width=crop_size[1]))
 
             aug_list.append(A.Normalize(mean=_imagenet_mean(), std=_imagenet_std()))
             aug_list.append(ToTensorV2())
-            return A.Compose(aug_list)
+            return _AlbumentationsWrapper(A.Compose(aug_list))
 
-        tlist = [transforms.Resize(size=size, interpolation=_pil_interp(cfg['resize'].get('interpolation')))]
-        if cfg.get('center_crop', {}).get('enabled', True):
-            crop_size = tuple(cfg['center_crop']['size'])
-            tlist.append(transforms.CenterCrop(crop_size)
-                       )
+        tlist = [transforms.Resize(size=size, interpolation=_pil_interp(cfg['resize'].interpolation))]
+        if 'center_crop' in cfg and cfg['center_crop'].enabled:
+            crop_size = tuple(cfg['center_crop'].size)
+            tlist.append(transforms.CenterCrop(crop_size))
         tlist.append(transforms.ToTensor())
         tlist.append(transforms.Normalize(mean=_imagenet_mean(), std=_imagenet_std()))
         return transforms.Compose(tlist)
@@ -141,3 +148,29 @@ def _alb_interp(name: str):
     if name == 'bicubic':
         return 3
     return 1
+
+
+class _AlbumentationsWrapper:
+    """Wrapper to make albumentations compatible with torchvision ImageFolder.
+    
+    Converts PIL Image to numpy array and applies albumentations transforms.
+    """
+    
+    def __init__(self, transform):
+        self.transform = transform
+    
+    def __call__(self, image):
+        """Apply albumentations transform to PIL Image.
+        
+        Args:
+            image: PIL Image
+            
+        Returns:
+            Transformed tensor
+        """
+        if hasattr(image, 'convert'):
+            image = image.convert('RGB')
+        
+        image_np = np.array(image)
+        transformed = self.transform(image=image_np)
+        return transformed['image']

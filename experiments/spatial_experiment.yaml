@@ -1,0 +1,147 @@
+experiment:
+  name: "spatial_audio_classification"
+  seed: 42
+  device: "cuda"
+  mixed_precision: true
+
+data:
+  train_dir: "spatial_images_dataset_final"
+  val_dir: null
+  test_dir: null
+  split:
+    strategy: "stratified"
+    val_ratio: 0.2
+    test_ratio: 0.1
+    group_key: null
+  image_size: [384, 384]
+  normalization: "imagenet"
+  num_workers: 4
+  pin_memory: true
+
+classes:
+  labels: ["100", "200", "510", "514"]
+
+augmentations:
+  train:
+    random_resized_crop:
+      enabled: true
+      size: [384, 384]
+      scale: [0.8, 1.0]
+      ratio: [0.9, 1.1]
+    horizontal_flip:
+      enabled: true
+      p: 0.5
+    rotation:
+      enabled: true
+      degrees: 15.0
+    color_jitter:
+      enabled: true
+      brightness: 0.2
+      contrast: 0.2
+      saturation: 0.2
+      hue: 0.1
+    gaussian_blur:
+      enabled: true
+      p: 0.1
+      std: 0.1
+    random_erasing:
+      enabled: true
+      p: 0.25
+      max_area: 0.33
+  val_test:
+    resize:
+      size: [416, 416]
+      interpolation: "bilinear"
+      enabled: true
+    center_crop:
+      size: [384, 384]
+      interpolation: "bilinear"
+      enabled: true
+
+model:
+  backbone: "swin_base_patch4_window12_384"
+  pretrained: true
+  head:
+    type: "mlp"
+    dropout: 0.2
+    hidden_dim: 512
+  freezing_policy:
+    phase1_linear_probe_epochs: 2
+    unfreeze_stages: [4]
+    progressive_unfreeze:
+      enabled: false
+  stochastic_depth:
+    enabled: true
+    drop_prob: 0.1
+
+optimization:
+  optimizer:
+    name: "adamw"
+    lr_head: 0.001
+    lr_backbone: 0.0001
+    betas: [0.9, 0.999]
+    weight_decay: 0.05
+  scheduler:
+    name: "cosine_warmup"
+    params:
+      warmup_epochs: 5
+      min_lr: 0.00001
+      factor: null
+      patience: null
+      monitor: null
+      mode: null
+  gradient_clipping:
+    enabled: true
+    max_norm: 1.0
+  amp:
+    enabled: true
+
+training:
+  epochs_max: 80
+  batch_size: 16
+  grad_accum_steps: 1
+  early_stopping:
+    enabled: true
+    monitor: "val_accuracy"
+    mode: "max"
+    patience: 15
+    restore_best: true
+
+loss:
+  name: "cross_entropy"
+  label_smoothing: 0.1
+  class_weights: null
+
+evaluation:
+  tta:
+    enabled: false
+    horizontal_flip: false
+    five_crop: false
+  reports:
+    confusion_matrix: true
+    classification_report: true
+    calibration_ece: true
+    attention_rollout_samples: 5
+
+logging:
+  backend: "wandb"
+  project_name: "spatial-audio-classification-phd"
+  run_name: "swin-base-80epochs-rtx4070ti"
+  run_tags: ["spatial_audio", "swin_transformer", "phd_thesis", "rtx4070ti", "80_epochs", "mixed_precision"]
+  save_dir: "logs"
+  log_frequency: 10
+  save_model_artifacts: true
+
+checkpointing:
+  monitor: "val_accuracy"
+  mode: "max"
+  save_top_k: 3
+  save_last: true
+
+export:
+  onnx:
+    enabled: false
+    dynamic_axes: null
+  torchscript:
+    enabled: false
+    trace_mode: true
