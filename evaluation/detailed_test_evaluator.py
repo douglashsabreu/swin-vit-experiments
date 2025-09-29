@@ -34,8 +34,15 @@ class DetailedTestEvaluator:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
-        self.device = self.config.experiment.device
-        self.class_names = self.config.classes.labels
+        # Safe config access 
+        self.device = self.config.experiment.device if hasattr(self.config, 'experiment') else 'cuda'
+        
+        # Handle class names - can be dict or object
+        try:
+            self.class_names = self.config.classes.labels  # If classes is an object
+        except AttributeError:
+            self.class_names = self.config.classes['labels']  # If classes is a dict
+        
         self.model = None
         
         # Results storage
@@ -43,17 +50,22 @@ class DetailedTestEvaluator:
         self.aggregate_results = {}
         
         # Initialize WandB for test evaluation
-        if self.config.logging.backend == "wandb":
+        if hasattr(self.config, 'logging') and self.config.logging.backend == "wandb":
             self._init_wandb_test_run()
     
     def _init_wandb_test_run(self):
         """Initialize WandB run specifically for test evaluation."""
+        # Access config safely
+        project_name = getattr(self.config.logging, 'project_name', 'spatial-audio-classification-phd')
+        experiment_name = getattr(self.config.experiment, 'name', 'test_evaluation')  
+        run_tags = getattr(self.config.logging, 'run_tags', [])
+        
         self.wandb_run = wandb.init(
-            project=self.config.logging.project_name,
-            name=f"detailed-test-evaluation-{self.config.experiment.name}",
-            tags=self.config.logging.run_tags + ["detailed_test", "per_file_analysis", "phd_thesis"],
+            project=project_name,
+            name=f"detailed-test-evaluation-{experiment_name}",
+            tags=run_tags + ["detailed_test", "per_file_analysis", "phd_thesis"],
             config={
-                **self.config.dict(),
+                **(self.config.dict() if hasattr(self.config, 'dict') else self.config),
                 "evaluation_mode": "detailed_per_file",
                 "checkpoint": str(self.checkpoint_path)
             },
@@ -114,7 +126,12 @@ class DetailedTestEvaluator:
                 targets = targets.to(self.device, non_blocking=True)
                 
                 # Forward pass
-                if self.config.optimization.amp.enabled:
+                # Check if AMP is enabled
+                amp_enabled = (hasattr(self.config, 'optimization') and 
+                             hasattr(self.config.optimization, 'amp') and 
+                             self.config.optimization.amp.enabled)
+                
+                if amp_enabled:
                     with autocast('cuda'):
                         outputs = self.model(images)
                 else:

@@ -1,0 +1,97 @@
+{
+  "overall_metrics": {
+    "accuracy": 0.952,
+    "macro_f1": 0.9518456780796023,
+    "weighted_f1": 0.9518558575710298,
+    "macro_precision": 0.9517651571883764,
+    "macro_recall": 0.9519996586642394,
+    "macro_auc": 0.9938025639147237,
+    "weighted_auc": 0.9938009182295321
+  },
+  "per_class_metrics": {
+    "100": {
+      "f1_score": 0.9973474801061007,
+      "precision": 0.9947089947089947,
+      "recall": 1.0
+    },
+    "200": {
+      "f1_score": 0.9787234042553191,
+      "precision": 0.9735449735449735,
+      "recall": 0.983957219251337
+    },
+    "510": {
+      "f1_score": 0.9139784946236559,
+      "precision": 0.9239130434782609,
+      "recall": 0.9042553191489362
+    },
+    "514": {
+      "f1_score": 0.9173333333333333,
+      "precision": 0.9148936170212766,
+      "recall": 0.9197860962566845
+    }
+  },
+  "confidence_analysis": {
+    "mean_confidence": 0.9016194661458333,
+    "std_confidence": 0.078802807256849,
+    "mean_correct_confidence": 0.9083915304403011,
+    "mean_incorrect_confidence": 0.7673068576388888,
+    "confidence_gap": 0.14108467280141224
+  },
+  "confusion_matrix": [
+    [
+      188,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      184,
+      0,
+      3
+    ],
+    [
+      1,
+      4,
+      170,
+      13
+    ],
+    [
+      0,
+      1,
+      14,
+      172
+    ]
+  ],
+  "error_analysis": {
+    "total_errors": 36,
+    "error_rate": 0.048,
+    "errors_by_true_class": {
+      "510": 18,
+      "514": 15,
+      "200": 3
+    },
+    "errors_by_predicted_class": {
+      "514": 16,
+      "200": 5,
+      "510": 14,
+      "100": 1
+    },
+    "confusion_pairs": {
+      "510\u2192514": 13,
+      "510\u2192200": 4,
+      "514\u2192510": 14,
+      "510\u2192100": 1,
+      "200\u2192514": 3,
+      "514\u2192200": 1
+    },
+    "most_confused_true_class": "510",
+    "most_confused_predicted_class": "514",
+    "most_common_confusion": "514\u2192510",
+    "low_confidence_errors": 0,
+    "high_confidence_errors": 16
+  },
+  "test_set_size": 750,
+  "correct_predictions": 714,
+  "incorrect_predictions": 36
+}
