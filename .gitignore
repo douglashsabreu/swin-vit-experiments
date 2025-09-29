@@ -38,11 +38,11 @@ rigorous_splits/
 test_predictions.*
 confusion_matrix.*
 classification_report.*
-*.csv
-*.png
-*.pdf
-*.jpg
-*.jpeg
+# *.csv
+# *.png
+# *.pdf
+# *.jpg
+# *.jpeg
 
 # WandB files
 wandb/
